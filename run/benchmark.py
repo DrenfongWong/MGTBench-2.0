@@ -92,7 +92,13 @@ def get_demo_data(data, train_size, test_size):
     demo['test'] = {'text': data['test']['text'][:test_size], 'label': data['test']['label'][:test_size]}
     return demo
 
-def experiment(csv_file, method, detectLLM):
+def get_demo_data_thbench(data, train_size, test_size):
+    demo = {}
+    demo['train'] = {'text': data['test']['text'][:train_size], 'label': data['test']['label'][:train_size]}
+    demo['test'] = {'text': data['test']['text'][train_size:train_size + test_size], 'label': data['test']['label'][train_size:train_size + test_size]}
+    return demo
+
+def experiment(csv_file, method, detectLLM, localdata):
     setup_seed(3407)
 
     # metric-based, threshold
@@ -102,35 +108,118 @@ def experiment(csv_file, method, detectLLM):
         for base_model in base_models:
             detector = AutoDetector.from_detector_name(method, model_name_or_path=base_model)
             experiment = AutoExperiment.from_experiment_name('threshold',detector=[detector])
-            for topic in TOPICS:
-                data = load('AITextDetect', detectLLM=detectLLM, category=topic)
-                data = get_demo_data(data,train_size=1000, test_size=2000)
+            if localdata == 'none':
+                for topic in TOPICS:
+                    data = load('AITextDetect', detectLLM=detectLLM, category=topic)
+                    data = get_demo_data(data,train_size=1000, test_size=2000)
+                    experiment.load_data(data)
+                    res = experiment.launch()
+                    print('==========')
+                    print('train:', res[0].train)
+                    print('test:', res[0].test)
+                    log_result(csv_file, res[0], method, detectLLM, topic, base_model=base_model)
+                    if len(res) > 1:
+                        print('==========')
+                        print('train:', res[1].train)
+                        print('test:', res[1].test)
+                        log_result(csv_file, res[1], method, detectLLM, topic, base_model=base_model)
+                    torch.cuda.empty_cache()
+            else:
+                data = {
+                    'train': {
+                        'text': [],
+                        'label': [],
+                            },
+                    'test': {
+                        'text': [],
+                        'label': [],
+                            }
+                        }
+                df = pd.read_csv(localdata)
+                data['test']['text'] = df['text'].tolist()
+                data['test']['label'] = df['label'].tolist()
+                data = get_demo_data_thbench(data,train_size=200, test_size=400)
                 experiment.load_data(data)
                 res = experiment.launch()
                 print('==========')
                 print('train:', res[0].train)
                 print('test:', res[0].test)
-                log_result(csv_file, res[0], method, detectLLM, topic, base_model=base_model)
+                log_result(csv_file, res[0], method, detectLLM, 'localdata', base_model=base_model)
                 if len(res) > 1:
                     print('==========')
                     print('train:', res[1].train)
                     print('test:', res[1].test)
-                    log_result(csv_file, res[1], method, detectLLM, topic, base_model=base_model)
+                    log_result(csv_file, res[1], method, detectLLM, 'localdata', base_model=base_model)
                 torch.cuda.empty_cache()
 
     # model-based
     elif method in ['LM-D']:
-        for topic in TOPICS:
-            data = load('AITextDetect', detectLLM=detectLLM, category=topic)
+        if localdata == 'none':
+            for topic in TOPICS:
+                data = load('AITextDetect', detectLLM=detectLLM, category=topic)
+                # for model_name in ['distilbert', 'roberta-base']:
+                for model_name in ['distilbert']:
+                    epoch = 3
+                    batch_size = 64
+                    path = get_path(model_name, detectLLM, topic, epoch, batch_size) # for LM-D
+                    if path is None:
+                        model_path = distilbert_path if model_name == 'distilbert' else roberta_path
+                        MAX = 10000
+                        data = get_demo_data(data,train_size=MAX, test_size=2000)
+                        # train the model
+                        detector = AutoDetector.from_detector_name(method, model_name_or_path=model_path, tokenizer_path=model_path)
+                        experiment = AutoExperiment.from_experiment_name('supervised', detector=[detector])
+                        experiment.load_data(data)
+                        model_save_dir = f"{save_dir}/{model_name}_{detectLLM}_{topic}_{epoch}_{batch_size}"
+
+                        config = {
+                            'need_finetune': True,
+                            'save_path': model_save_dir,
+                            'epochs': epoch,
+                            'batch_size': batch_size,
+                            'disable_tqdm': True,
+                            }
+                        res = experiment.launch(**config)
+
+                        print('==========')
+                        print('train:', res[0].train)
+                        print('test:', res[0].test)
+                        log_result(csv_file, res[0], method, detectLLM, topic, base_model=model_name)
+                        torch.cuda.empty_cache()
+                    else:
+                        data = load('AITextDetect', detectLLM=detectLLM, category=topic)
+                        data = get_demo_data(data,train_size=1000, test_size=2000)
+                        detector = AutoDetector.from_detector_name(method, model_name_or_path=path, tokenizer_path=path)
+                        experiment = AutoExperiment.from_experiment_name('supervised', detector=[detector])
+                        experiment.load_data(data)
+                        res = experiment.launch(need_finetune=False)
+                        print('==========')
+                        print('train:', res[0].train)
+                        print('test:', res[0].test)
+                        log_result(csv_file, res[0], method, detectLLM, topic, base_model=model_name)
+                        torch.cuda.empty_cache()
+        else:
+            data = {
+                'train': {
+                    'text': [],
+                    'label': [],
+                        },
+                'test': {
+                    'text': [],
+                    'label': [],
+                        }
+                    }
+            df = pd.read_csv(localdata)
+            data['test']['text'] = df['text'].tolist()
+            data['test']['label'] = df['label'].tolist()
+            data = get_demo_data(data,train_size=200, test_size=400)
             # for model_name in ['distilbert', 'roberta-base']:
             for model_name in ['distilbert']:
                 epoch = 3
                 batch_size = 64
-                path = get_path(model_name, detectLLM, topic, epoch, batch_size) # for LM-D
+                path = get_path(model_name, detectLLM, 'localdata', epoch, batch_size) # for LM-D
                 if path is None:
                     model_path = distilbert_path if model_name == 'distilbert' else roberta_path
-                    MAX = 10000
-                    data = get_demo_data(data,train_size=MAX, test_size=2000)
                     # train the model
                     detector = AutoDetector.from_detector_name(method, model_name_or_path=model_path, tokenizer_path=model_path)
                     experiment = AutoExperiment.from_experiment_name('supervised', detector=[detector])
@@ -149,11 +238,9 @@ def experiment(csv_file, method, detectLLM):
                     print('==========')
                     print('train:', res[0].train)
                     print('test:', res[0].test)
-                    log_result(csv_file, res[0], method, detectLLM, topic, base_model=model_name)
+                    log_result(csv_file, res[0], method, detectLLM, 'localdata', base_model=model_name)
                     torch.cuda.empty_cache()
                 else:
-                    data = load('AITextDetect', detectLLM=detectLLM, category=topic)
-                    data = get_demo_data(data,train_size=1000, test_size=2000)
                     detector = AutoDetector.from_detector_name(method, model_name_or_path=path, tokenizer_path=path)
                     experiment = AutoExperiment.from_experiment_name('supervised', detector=[detector])
                     experiment.load_data(data)
@@ -161,16 +248,45 @@ def experiment(csv_file, method, detectLLM):
                     print('==========')
                     print('train:', res[0].train)
                     print('test:', res[0].test)
-                    log_result(csv_file, res[0], method, detectLLM, topic, base_model=model_name)
+                    log_result(csv_file, res[0], method, detectLLM, 'localdata', base_model=model_name)
                     torch.cuda.empty_cache()
 
     elif method in ['RADAR', 'chatgpt-detector']:
-        for topic in TOPICS:
-            data = load('AITextDetect', detectLLM=detectLLM, category=topic)
-            data = get_demo_data(data,train_size=1000, test_size=2000)
-            if method == 'RADAR': # https://huggingface.co/TrustSafeAI/RADAR-Vicuna-7B
+        if localdata == 'none':
+            for topic in TOPICS:
+                data = load('AITextDetect', detectLLM=detectLLM, category=topic)
+                data = get_demo_data(data,train_size=1000, test_size=2000)
+                if method == 'RADAR': # https://huggingface.co/TrustSafeAI/RADAR-Vicuna-7B
+                    path = '/data_sda/zhiyuan/models/Radar'
+                elif method == 'chatgpt-detector': # https://huggingface.co/Hello-SimpleAI/chatgpt-detector-roberta
+                    path = '/data_sda/zhiyuan/models/chatgpt-detector-roberta' 
+                detector = AutoDetector.from_detector_name(method, model_name_or_path=path, tokenizer_path=path)
+                experiment = AutoExperiment.from_experiment_name('supervised', detector=[detector])
+                experiment.load_data(data)
+                res = experiment.launch()
+                print('==========')
+                print('train:', res[0].train)
+                print('test:', res[0].test)
+                log_result(csv_file, res[0], method, detectLLM, topic)
+                torch.cuda.empty_cache()
+        else:
+            data = {
+                'train': {
+                    'text': [],
+                    'label': [],
+                        },
+                'test': {
+                    'text': [],
+                    'label': [],
+                        }
+                    }
+            df = pd.read_csv(localdata)
+            data['test']['text'] = df['text'].tolist()
+            data['test']['label'] = df['label'].tolist()
+            data = get_demo_data(data,train_size=200, test_size=400)
+            if method == 'RADAR':
                 path = '/data_sda/zhiyuan/models/Radar'
-            elif method == 'chatgpt-detector': # https://huggingface.co/Hello-SimpleAI/chatgpt-detector-roberta
+            elif method == 'chatgpt-detector':
                 path = '/data_sda/zhiyuan/models/chatgpt-detector-roberta' 
             detector = AutoDetector.from_detector_name(method, model_name_or_path=path, tokenizer_path=path)
             experiment = AutoExperiment.from_experiment_name('supervised', detector=[detector])
@@ -179,7 +295,7 @@ def experiment(csv_file, method, detectLLM):
             print('==========')
             print('train:', res[0].train)
             print('test:', res[0].test)
-            log_result(csv_file, res[0], method, detectLLM, topic)
+            log_result(csv_file, res[0], method, detectLLM, 'localdata')
             torch.cuda.empty_cache()
 
     # perturbation-based
@@ -191,23 +307,52 @@ def experiment(csv_file, method, detectLLM):
                                                     reference_model_name_or_path= reference_model_name_or_path
                                                     )
         experiment = AutoExperiment.from_experiment_name('perturb', detector=[detector])
-
-        for topic in TOPICS:
-            data = load('AITextDetect', detectLLM=detectLLM, category=topic)
-            data = get_demo_data(data,train_size=1000, test_size=2000)
+        if localdata == 'none':
+            for topic in TOPICS:
+                data = load('AITextDetect', detectLLM=detectLLM, category=topic)
+                data = get_demo_data(data,train_size=1000, test_size=2000)
+                experiment.load_data(data)
+                res = experiment.launch()
+                print('==========')
+                print(res[0])
+                print('train:', res[0].train)
+                print('test:', res[0].test)
+                log_result(csv_file, res[0], method, detectLLM, topic)
+                if len(res) > 1:
+                    print('==========')
+                    print(res[1])
+                    print('train:', res[1].train)
+                    print('test:', res[1].test)
+                    log_result(csv_file, res[1], method, detectLLM, topic)
+                torch.cuda.empty_cache()
+        else:
+            data = {
+                'train': {
+                    'text': [],
+                    'label': [],
+                        },
+                'test': {
+                    'text': [],
+                    'label': [],
+                        }
+                    }
+            df = pd.read_csv(localdata)
+            data['test']['text'] = df['text'].tolist()
+            data['test']['label'] = df['label'].tolist()
+            data = get_demo_data(data,train_size=200, test_size=400)
             experiment.load_data(data)
             res = experiment.launch()
             print('==========')
             print(res[0])
             print('train:', res[0].train)
             print('test:', res[0].test)
-            log_result(csv_file, res[0], method, detectLLM, topic)
+            log_result(csv_file, res[0], method, detectLLM, 'localdata')
             if len(res) > 1:
                 print('==========')
                 print(res[1])
                 print('train:', res[1].train)
                 print('test:', res[1].test)
-                log_result(csv_file, res[1], method, detectLLM, topic)
+                log_result(csv_file, res[1], method, detectLLM, 'localdata')
             torch.cuda.empty_cache()
         
     # binoculars
@@ -223,22 +368,49 @@ def experiment(csv_file, method, detectLLM):
                                                     threshold='new'
                                                     )
         experiment = AutoExperiment.from_experiment_name('threshold', detector=[detector])
-        for topic in TOPICS:
-            data = load('AITextDetect', detectLLM=detectLLM, category=topic)
-            data = get_demo_data(data,train_size=1000, test_size=2000)
+        if localdata == 'none':
+            for topic in TOPICS:
+                data = load('AITextDetect', detectLLM=detectLLM, category=topic)
+                data = get_demo_data(data,train_size=1000, test_size=2000)
+                experiment.load_data(data)
+                res = experiment.launch()
+                print('==========')
+                print('train:', res[0].train)
+                print('test:', res[0].test)
+                log_result(csv_file, res[0], method, detectLLM, topic)
+                if len(res) > 1:
+                    print('==========')
+                    print('train:', res[1].train)
+                    print('test:', res[1].test)
+                    log_result(csv_file, res[1], method, detectLLM, topic)
+                torch.cuda.empty_cache()
+        else:
+            data = {
+                'train': {
+                    'text': [],
+                    'label': [],
+                        },
+                'test': {
+                    'text': [],
+                    'label': [],
+                        }
+                    }
+            df = pd.read_csv(localdata)
+            data['test']['text'] = df['text'].tolist()
+            data['test']['label'] = df['label'].tolist()
+            data = get_demo_data(data,train_size=200, test_size=400)
             experiment.load_data(data)
             res = experiment.launch()
             print('==========')
             print('train:', res[0].train)
             print('test:', res[0].test)
-            log_result(csv_file, res[0], method, detectLLM, topic)
+            log_result(csv_file, res[0], method, detectLLM, 'localdata')
             if len(res) > 1:
                 print('==========')
                 print('train:', res[1].train)
                 print('test:', res[1].test)
-                log_result(csv_file, res[1], method, detectLLM, topic)
+                log_result(csv_file, res[1], method, detectLLM, 'localdata')
             torch.cuda.empty_cache()
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -248,10 +420,12 @@ if __name__ == '__main__':
                                                         'LM-D', 'RADAR', 'chatgpt-detector',
                                                         'demasq'])
     parser.add_argument('--detectLLM', type=str)
+    parser.add_argument('--localdata', type=str, default="none")
 
     args = parser.parse_args()
     csv_file = args.csv_path
     method = args.method
     detectLLM = args.detectLLM
+    localdata = args.localdata
 
-    experiment(csv_file, method, detectLLM)
+    experiment(csv_file, method, detectLLM, localdata)
