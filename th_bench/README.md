@@ -1,6 +1,6 @@
-#TH-Bench: Evaluating Evading Attacks via Humanizing AI Text on Machine-Generated Text Detectors
+# TH-Bench: Evaluating Evading Attacks via Humanizing AI Text on Machine-Generated Text Detectors
 
-![Text Humanization Benchmark Overview](fig1.pdf)
+![Text Humanization Benchmark Overview](fig1.png)
 
 ## Quick Start
 
