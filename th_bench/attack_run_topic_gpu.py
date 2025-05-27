@@ -26,7 +26,7 @@ def get_all_gpus_memory_usage_by_pid(pid):
         gpu_memory_used = 0
         for proc in processes:
             if proc.pid == pid:
-                gpu_memory_used += proc.usedGpuMemory / (1024**2)  # 转换为MiB
+                gpu_memory_used += proc.usedGpuMemory / (1024**2)  # Convert to MiB
         all_gpus_memory_usage.append((i, gpu_memory_used))
         total_memory_usage += gpu_memory_used
     if total_memory_usage > max_memory_usage:
@@ -66,10 +66,10 @@ if __name__ == '__main__':
         categories = ['STEM', 'Humanities', 'Social_sciences']        
 
     save_dir =  "pre_dataset"
-    os.makedirs(save_dir, exist_ok=True)  # 动态创建目录（如果不存在）
+    os.makedirs(save_dir, exist_ok=True)  # Dynamically create directory if it doesn't exist
     gpu_log_file = os.path.join(save_dir, f"gpu_usage_{args.detectLLM}_{args.attack}.log")
     current_pid = os.getpid()
-    # 每1秒记录一次GPU使用情况
+    # Record GPU usage every 1 second
     def monitor_gpu():
         while True:
             print_gpu_usage(gpu_log_file, "Global" , current_pid)
@@ -77,7 +77,7 @@ if __name__ == '__main__':
             
     import threading
     gpu_monitor_thread = threading.Thread(target=monitor_gpu)
-    gpu_monitor_thread.daemon = True  # 设置为守护线程，主程序结束时自动退出
+    gpu_monitor_thread.daemon = True  # Set as daemon thread, automatically exits when main program ends
     gpu_monitor_thread.start()
     # run all the experiments
     cnt = 0
@@ -87,7 +87,7 @@ if __name__ == '__main__':
             start_time = time.time()
             with open(gpu_log_file, 'a') as f:
                 f.write(f"Category: {cat}_{length}\n")
-                f.write("\n")  # 添加一个空行以便区分不同的记录    
+                f.write("\n")  # Add a blank line to separate different records    
             file_name = f"clean_{length}_{args.detectLLM}_{cat}.csv"
             file_path = os.path.join(save_dir, file_name)
             df = pd.read_csv(file_path)
@@ -124,19 +124,19 @@ if __name__ == '__main__':
                     "./exp_gpt3to4/data/",
                 )
                 data['test'] = experiment.run()
-            end_time = time.time()  # 记录处理结束时间
-            total_time = end_time - start_time # 计算总运行时间
-            avg_time_per_input = total_time / len(df) if len(df) > 0 else 0  # 计算每条输入的平均运行时间
+            end_time = time.time()  # Record end processing time
+            total_time = end_time - start_time # Calculate total running time
+            avg_time_per_input = total_time / len(df) if len(df) > 0 else 0  # Calculate average running time per input
             print(f"Total Time: {total_time:.4f} seconds")
             print(f"Average Time per Input: {avg_time_per_input:.4f} seconds")
-            # 调用 print_gpu_usage 记录 GPU 使用情况和平均运行时间
+            # Call print_gpu_usage to record GPU usage and average running time
             print_gpu_usage(gpu_log_file, "Final", current_pid, avg_time_per_input)
             print(f'===== {cat} - {args.detectLLM} - {args.attack} - {length}=====')
-            combined_data = data['test']  # 假设数据是列表形式
+            combined_data = data['test']  # Assume data is in list format
             with open(f'pre_dataset/{args.attack}_{length}_{args.detectLLM}_{cat}.json', "w") as f:
                 json.dump(data, f, indent=4)
             file_name = f"{args.attack}_{length}_{args.detectLLM}_{cat}.csv"
             file_path = os.path.join(save_dir, file_name)
             df = pd.DataFrame(combined_data)
             df.to_csv(file_path, index=False)
-            print(f"数据已成功保存！文件路径：{file_path}")
+            print(f"Data successfully saved! File path: {file_path}")

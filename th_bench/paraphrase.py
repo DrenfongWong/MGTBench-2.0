@@ -8,7 +8,6 @@ from nltk.tokenize import sent_tokenize
 from six.moves import cPickle as pkl
 import os
 
-# 设置环境变量
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 
 class DipperParaphraser(object):
@@ -122,7 +121,7 @@ def run_attack_dipper(data, model="kalpeshk2011/dipper-paraphraser-xxl", P=1):
         data['text'][idx] = output
         torch.cuda.empty_cache()
     torch.cuda.empty_cache()
-    # 打开文件并写入JSON数据
+
     if not os.path.exists("results"):
         os.mkdir("results")
     with open(f'results/pp_{P}.json', 'w', encoding='utf-8') as f:

@@ -1,8 +1,10 @@
-#Text_Humanization_Benchmark
+#TH-Bench: Evaluating Evading Attacks via Humanizing AI Text on Machine-Generated Text Detectors
+
+![Text Humanization Benchmark Overview](fig1.pdf)
 
 ## Quick Start
 
-### clean data preparetion
+### Clean Data Preparetion
 ```bash
 # create env for clean data generation $attack in ("dipper" "recursive_dipper" "token_ensemble" "raft")
 conda create -n attack_run python=3.9
@@ -17,7 +19,7 @@ python attack_run.py --detectLLM $model --datatype mgt2_topic
 python attack_run.py --detectLLM $model --datatype mgt1
 ```
 
-### attack in ("dipper" "recursive_dipper" "token_ensemble" "raft"), the attack file is pre_dataset/clean_${model}_${attack}.csv
+### Attack in ("dipper" "recursive_dipper" "token_ensemble" "raft"), the attack file is pre_dataset/clean_${model}_${attack}.csv
 ```bash
 # $attack in ("dipper" "recursive_dipper" "token_ensemble" "raft")
 conda activate attack_run
@@ -26,7 +28,7 @@ python attack_run.py --detectLLM $model --attack $attack --datatype mgt1/mgt2/mg
 python attack_run_topic_gpu.py --detectLLM $model --attack $attack --datatype mgt1/mgt2/mgt2_topic
 ``` 
 
-### hmgc attack, the attack file is pre_dataset/clean_${model}_${dataset}.csv 
+### HMGC attack, the attack file is pre_dataset/clean_${model}_${dataset}.csv 
 ```bash
 conda env create -n hmgc python=3.9
 conda activate hmgc
@@ -35,6 +37,26 @@ python flint_attack.py  --model_name_or_path ${model_dir} --output_dir ${output_
 # if you want to collect time and gpu usage in attack, use this cmd
 python flint_attack_topic_gpu.py  --model_name_or_path ${model_dir} --output_dir ${output_dir} --attacking_method dualir --dataset ${model}_${dataset}
 ```
+
+### prompt attack Use the following prompt to rewrite the text：
+```bash
+
+1. Your task is to rewrite the below article which must satisfy the following conditions:
+2. Keeping the semantic meaning of the new article unchanged;
+
+The new article should be classified as human-written.
+
+Only output the new article without anything else.
+
+Please rewrite the following article while incorporating the word usage patterns:
+{origin_article}
+
+Aim to diverge from the original text's style and expression.
+```
+Please use your own local model or API
+
+
+## Measure Attack Efficiency
 
 ### benchmark using MGTBENCH2.0, follow the ../README to do the benchmark
 ```bash
@@ -49,3 +71,38 @@ python benchmark.py --csv_path ${the_result_file_path} --method ll --detect_LLM 
 # calculate the quality of attack
 python text_quality_cal.py --detectLLM Moonshot --dataset Physics --attack raft
 ```
+
+## Measure Text Quality
+
+### Dependencies
+```bash
+pip install transformers torch pandas numpy scipy rouge_score textstat
+```
+
+### Usage
+```bash
+python text_quality_cal.py --detectLLM [LLM_MODELS] --dataset [DATASET] --attack [ATTACK_METHOD]
+```
+
+Available LLM models:
+- Moonshot
+- gpt35
+- Mixtral
+- Llama3
+- gpt-4omini
+- ChatGPT-turbo
+- ChatGLM
+- Dolly
+- ChatGPT
+- GPT4All
+- Claude
+- StableLM
+
+Example:
+```bash
+python text_quality_cal.py --detectLLM Moonshot gpt35 --dataset Physics --attack raft
+```
+
+The tool will output statistics including perplexity, semantic similarity, ROUGE-L scores, and Flesch readability metrics.
+
+

@@ -13,7 +13,7 @@ def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-                    # 如果您使用的是torch的CUDA设备，还需要设置以下内容
+    # If you are using a CUDA device with torch, you also need to set the following
     torch.cuda.manual_seed_all(seed)
 
 def select_model_random_loaded(model_info_list):

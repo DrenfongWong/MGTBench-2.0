@@ -17,13 +17,13 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)
 
 def calculate_ppl(model, tokenizer, text):
-    # 使用transformers库中的pipeline计算文本的困惑度
+    # Calculate text perplexity using the transformers library pipeline
     ppl_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
     ppl = ppl_pipeline.compute_perplexity(text)
     return ppl
 
 def calculate_bert_similarity(model, tokenizer, text1, text2):
-    # 使用BERT计算两个文本的语义相似度
+    # Calculate semantic similarity between two texts using BERT
     inputs1 = tokenizer(text1, return_tensors="pt", padding=True, truncation=True, max_length=512)
     inputs2 = tokenizer(text2, return_tensors="pt", padding=True, truncation=True, max_length=512)
     
@@ -37,12 +37,12 @@ def calculate_bert_similarity(model, tokenizer, text1, text2):
     return similarity
 
 def completion_judgement(tokenizer, generated_text, reference_text, bert_model, bert_tokenizer):
-    # 检查是否包含预训练模型的结束标记
+    # Check if the text contains the end token of the pre-trained model
     if tokenizer.eos_token in generated_text:
         return True
-    # 计算生成文本与参考文本的相似度
+    # Calculate similarity between generated text and reference text
     similarity = calculate_bert_similarity(bert_model, bert_tokenizer, generated_text, reference_text)
-    if similarity > 0.8:  # 假设相似度阈值为0.8
+    if similarity > 0.8:  # Assuming similarity threshold is 0.8
         return True
     return False
 
@@ -75,7 +75,7 @@ def complete_text_with_model(data, model_list, cuda_name, max_new_tokens=1):
         flag_completion = False
         
         prompt = f'{incomplete}'
-        reference_text = original  # 假设参考文本是原始文本
+        reference_text = original  # Assume the reference text is the original text
         
         T1 = time.time()
         times = 0
@@ -101,8 +101,6 @@ def complete_text_with_model(data, model_list, cuda_name, max_new_tokens=1):
                 
                 next_tokens.append(next_token)
                 ppls.append(calculate_ppl(model, tokenizer, prompt + " " + next_token))
-            
-            # 选择PPL最低的下一个token
             min_ppl_idx = np.argmin(ppls)
             next_token = next_tokens[min_ppl_idx]
             

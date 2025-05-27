@@ -20,7 +20,7 @@ def get_all_gpus_memory_usage_by_pid(pid):
         gpu_memory_used = 0
         for proc in processes:
             if proc.pid == pid:
-                gpu_memory_used += proc.usedGpuMemory / (1024**2)  # 转换为MiB
+                gpu_memory_used += proc.usedGpuMemory / (1024**2) 
         all_gpus_memory_usage.append((i, gpu_memory_used))
         total_memory_usage += gpu_memory_used
     if total_memory_usage > max_memory_usage:
@@ -44,7 +44,7 @@ def print_gpu_usage(log_file, category, pid, avg_time_per_input=None):
 def generate_variation(prompt, input_text, model, tokenizer, device):
     full_input = f"{prompt} {input_text}"
     inputs = tokenizer(full_input, return_tensors="pt").to(device)
-    with torch.no_grad():  # 禁用梯度计算
+    with torch.no_grad():
         output = model.generate(**inputs, max_length=2048)
     generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
     return generated_text
@@ -76,7 +76,7 @@ def main():
     args = parser.parse_args()
     current_pid = os.getpid()
 
-    # 根据输入的 CSV 文件路径生成日志文件路径
+
     log_file = args.file.replace('clean', 'gpu_usage_prompt').replace('.csv', '.log')
 
     def monitor_gpu():

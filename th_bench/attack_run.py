@@ -23,7 +23,7 @@ if __name__ == '__main__':
     datatype = args.datatype
 
     save_dir =  "pre_dataset"
-    os.makedirs(save_dir, exist_ok=True)  # 动态创建目录（如果不存在）
+    os.makedirs(save_dir, exist_ok=True)  
     
     if datatype == "mgt1":
         categories = ['Essay', 'Reuters', 'WP']
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                 data = load(name=cat, detectLLM=args.detectLLM, category=cat)
             elif datatype == "mgt2":
                 data = load(name=datasource, detectLLM=args.detectLLM, category=cat)
-            for length in range(100, 1100, 100):  # 生成100到1000字长的文本
+            for length in range(100, 1100, 100):  
                 clean_texts = []
                 clean_labels = []
                 count = 0
@@ -74,16 +74,16 @@ if __name__ == '__main__':
                         clean_texts.append(' '.join(words[:length]))
                         clean_labels.append(label)
                         count += 1
-                    if count == 10:  # 限制为10条
+                    if count == 10:  
                         break
                 data_new['test'][f'text_{length}'] = clean_texts
                 data_new['test'][f'label_{length}'] = clean_labels
 
-            # 打印或保存处理后的数据
+            
             for length in range(100, 1100, 100):
                 print(f"Category: {cat}, Length: {length}, Number of texts: {len(data_new['test'][f'text_{length}'])}")
 
-            # 保存处理后的数据到文件
+            
             for length in range(100, 1100, 100):
                 output_file_name = f"clean_{length}_{args.detectLLM}_{cat}.csv"
                 output_file_path = os.path.join(save_dir, output_file_name)
@@ -122,11 +122,11 @@ if __name__ == '__main__':
             )
             data['test'] = experiment.run()
         print(f'===== {cat} - {args.detectLLM} - {args.attack}=====')
-        combined_data = data['test']  # 假设数据是列表形式
+        combined_data = data['test']  
         with open(f'pre_dataset/{args.attack}_{args.detectLLM}_{cat}.json', "w") as f:
             json.dump(data, f, indent=4)
         file_name = f"{args.attack}_{args.detectLLM}_{cat}.csv"
         file_path = os.path.join(save_dir, file_name)
         df = pd.DataFrame(combined_data)
         df.to_csv(file_path, index=False)
-        print(f"数据已成功保存！文件路径：{file_path}")
+        print(f"Data saved: {file_path}")

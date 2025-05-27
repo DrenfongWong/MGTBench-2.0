@@ -9,7 +9,7 @@ from six.moves import cPickle as pkl
 import os
 from experiment_raft import Experiment
 
-# 设置环境变量
+# Set environment variables
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 
 class DipperParaphraser(object):
@@ -131,7 +131,7 @@ def run_attack_dipper_and_raft(data, model="kalpeshk2011/dipper-paraphraser-xxl"
     time.sleep(10)
     torch.cuda.empty_cache()
     time.sleep(5)
-    # 打开文件并写入JSON数据
+    # Open file and write JSON data
     if not os.path.exists("results"):
         os.mkdir("results")
     with open(f'results/pp_{P}.json', 'w', encoding='utf-8') as f:

@@ -113,14 +113,14 @@ def init(model_path, attacking_method="dualir", gpu_i=0, gpu_log_file=None):
     )
     global current_pid
     current_pid = os.getpid()
-    # 每10秒记录一次GPU使用情况
+
     def monitor_gpu():
         while True:
             print_gpu_usage(gpu_log_file, "Global" , current_pid)
             time.sleep(1)
     import threading
     gpu_monitor_thread = threading.Thread(target=monitor_gpu)
-    gpu_monitor_thread.daemon = True  # 设置为守护线程，主程序结束时自动退出
+    gpu_monitor_thread.daemon = True  
     gpu_monitor_thread.start()
 
 
@@ -213,12 +213,12 @@ def run_flint_attack(args):
         init_fn=init,
         init_args=(args.model_name_or_path, args.attacking_method, 1, gpu_log_file,),
     )
-    end_time = time.time()  # 记录处理结束时间
-    total_time = end_time - start_time  # 计算总运行时间
-    avg_time_per_input = total_time / len(df) if len(df) > 0 else 0  # 计算每条输入的平均运行时间
+    end_time = time.time()  
+    total_time = end_time - start_time  
+    avg_time_per_input = total_time / len(df) if len(df) > 0 else 0  
     print(f"Total Time: {total_time:.4f} seconds")
     print(f"Average Time per Input: {avg_time_per_input:.4f} seconds")
-            # 调用 print_gpu_usage 记录 GPU 使用情况和平均运行时间
+
     global current_pid
     print ("current_pid", current_pid)
     print_gpu_usage(gpu_log_file, "Final", current_pid, avg_time_per_input)

@@ -86,7 +86,7 @@ class Experiment:
             )  # , limit=500000)
         MODEL_DIR = '/data1/models/Llama-2-13b-chat-hf'
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
-                    # 加载模型和tokenizer
+
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
         self.device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
         model = AutoModelForCausalLM.from_pretrained(MODEL_DIR)
@@ -411,13 +411,13 @@ class Experiment:
                     paragraph_query = (
                         self.proxy_model_tokenizer.decode(
                             self.flatten(tokens_id[:token_pos])
-                        ).rstrip()  # 去掉尾部空格
-                        + " ["  # 添加左括号并确保前面有空格
+                        ).rstrip() 
+                        + " ["  
                         + self.proxy_model_tokenizer.decode(tokens_id[token_pos]).strip()  # 替换单词
-                        + "] "  # 添加右括号
+                        + "] "  
                         + self.proxy_model_tokenizer.decode(
                             self.flatten(tokens_id[token_pos + 1 :])
-                            ).lstrip()  # 去掉开头空格
+                            ).lstrip()  
                     )
 
                     similar_words = self.predict_words(paragraph_query, self.top_k)
@@ -709,5 +709,5 @@ if __name__ == "__main__":
         args.candidate_generation,
         args.dataset_dir,
     )
-    # 确保模型在正确的设备上
+
     experiment.run()

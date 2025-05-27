@@ -1,6 +1,5 @@
 attack_type="clean"
 
-# 定义所有可能的detectLLM选项
 detectLLM_options=("Moonshot" "gpt35" "Mixtral" "Llama3" "gpt-4omini")
 detectLLM_options_mgt=("ChatGPT-turbo" "ChatGLM" "Dolly" "ChatGPT" "GPT4All" "StableLM" "Claude")
 for model in "${detectLLM_options[@]}"; do

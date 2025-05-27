@@ -1,6 +1,5 @@
 attack_type="clean"
 n=0
-# 定义所有可能的detectLLM选项
 detectLLM_options=("Mixtral" "Llama3" "Moonshot" "gpt35" "gpt-4omini")
 datasets=("Humanities" "Social_sciences" "STEM")
 for model in "${detectLLM_options[@]}"; do
