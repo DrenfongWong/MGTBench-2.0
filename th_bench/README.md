@@ -24,8 +24,6 @@ python attack_run.py --detectLLM $model --datatype mgt1
 # $attack in ("dipper" "recursive_dipper" "token_ensemble" "raft")
 conda activate attack_run
 python attack_run.py --detectLLM $model --attack $attack --datatype mgt1/mgt2/mgt2_topic
-# if you want to collect time and gpu usage in attack, use this cmd
-python attack_run_topic_gpu.py --detectLLM $model --attack $attack --datatype mgt1/mgt2/mgt2_topic
 ``` 
 
 ### HMGC attack, the attack file is pre_dataset/clean_${model}_${dataset}.csv 
@@ -34,8 +32,6 @@ conda env create -n hmgc python=3.9
 conda activate hmgc
 pip install -r requirements_for_hmgc.txt
 python flint_attack.py  --model_name_or_path ${model_dir} --output_dir ${output_dir} --attacking_method dualir --dataset ${model}_${dataset}
-# if you want to collect time and gpu usage in attack, use this cmd
-python flint_attack_topic_gpu.py  --model_name_or_path ${model_dir} --output_dir ${output_dir} --attacking_method dualir --dataset ${model}_${dataset}
 ```
 
 ### prompt attack Use the following prompt to rewrite the text：
@@ -105,4 +101,12 @@ python text_quality_cal.py --detectLLM Moonshot gpt35 --dataset Physics --attack
 
 The tool will output statistics including perplexity, semantic similarity, ROUGE-L scores, and Flesch readability metrics.
 
-
+## Resource Monitor
+```bash
+conda activate attack_run
+# if you want to collect time and gpu usage in attack, use this cmd
+python attack_run_topic_gpu.py --detectLLM $model --attack $attack --datatype mgt1/mgt2/mgt2_topic
+conda activate hmgc
+python flint_attack_topic_gpu.py  --model_name_or_path ${model_dir} --output_dir ${output_dir} --attacking_method dualir --dataset ${model}_${dataset}
+```
+The tool will out gpu usage and time usage in ${output_dir}, name like gpu_uasge*.log
